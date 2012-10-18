@@ -10,7 +10,11 @@ import Data.List (intercalate)
 
 data Default = Default String deriving (Show)
 
-data CreateDefinition = ColumnDefinition String (String, Maybe String) (Maybe Default)
+type Width = String
+type Type = String
+data Datatype = Datatype Type (Maybe Width) deriving (Show)
+
+data CreateDefinition = ColumnDefinition String Datatype (Maybe Default)
                       | Index String String 
                       | PrimaryKey String 
                       | ForeignKeyConstraint String String String String String
@@ -75,14 +79,14 @@ createDefinition = do
     return x
      -- <|> check
 
-datatype :: GenParser Char st (String, Maybe String)
+datatype :: GenParser Char st Datatype 
 datatype = do
     -- change these later to types
     t <- string "int" <|> string "varchar" <|> try (string "tinyint") <|> try (string "datetime") <|> try (string "longblob") <|> try (string "blob")  <|>
           try (string "text") <|> string "longtext" <|> string "decimal" <|> try (string "smallint") <|> try (string "bigint")
     width <- optionMaybe $ betweenParens
     spaces
-    return (t, width)
+    return $ Datatype t width
 
 columnDefinition :: GenParser Char st CreateDefinition
 columnDefinition = do 
