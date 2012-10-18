@@ -8,15 +8,17 @@ import Control.Applicative ((<*))
 import Data.List (intercalate)
 
 
-data Default = Default String deriving (Show)
-
 type Width = String
 type Type = String
+type ColName = String
 data Datatype = Datatype Type (Maybe Width) deriving (Show)
 data NullOpt = Null | NotNull deriving (Show)
-data Serial = Serial deriving (Show)
+data SerialOpt = NotSerial | Serial deriving (Show)
+data DefaultOpt = NoDefault 
+                | Default String 
+                deriving (Show)
 
-data CreateDefinition = ColumnDefinition String Datatype NullOpt (Maybe Serial) (Maybe Default)
+data CreateDefinition = ColumnDefinition ColName Datatype NullOpt SerialOpt DefaultOpt
                       | Index String String 
                       | PrimaryKey String 
                       | ForeignKeyConstraint String String String String String
@@ -99,8 +101,8 @@ columnDefinition = do
     let nopt = case n of
                   Nothing -> Null
                   _ -> NotNull
-    s <- optionMaybe ((try $ string "AUTO_INCREMENT")  >> return Serial)
-    df <- optionMaybe $ Default `liftM` (string "DEFAULT " >> (many (noneOf " ,\n")))
+    s <- option NotSerial (try $ string "AUTO_INCREMENT" >> return Serial)
+    df <- option NoDefault (Default `liftM` (string "DEFAULT " >> (many (noneOf " ,\n"))))
     return $ ColumnDefinition tbl d nopt s df
 
 keyColumns = char '(' >> liftM (intercalate ",") (sepBy betweenTicks (char ',')) <* (char ')' >> spaces)
