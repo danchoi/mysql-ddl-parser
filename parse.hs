@@ -150,8 +150,8 @@ prettyPrint xs =
               mapM_ (putStrLn . showCreateDefinition) ys
           pprint _ = return ()
 
-showCreateDefinition :: CreateDefinition -> String
-showCreateDefinition x = "  " ++ (show x)
+          showCreateDefinition :: CreateDefinition -> String
+          showCreateDefinition x = "  " ++ (show x)
   
 main = do 
     s <- getContents
