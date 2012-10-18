@@ -75,18 +75,10 @@ betweenParens = do
     return x
 
 betweenParensTicks :: GenParser Char st String
-betweenParensTicks = do
-    char '(' 
-    x <- betweenTicks
-    char ')'
-    spaces
-    return x
+betweenParensTicks = char '(' >> betweenTicks <* (char ')' >> spaces)
 
 definitions :: GenParser Char st [CreateDefinition]
-definitions = do
-    xs <- many createDefinition
-    char ')' 
-    return xs
+definitions = many createDefinition <* char ')' 
   
 createDefinition :: GenParser Char st CreateDefinition
 createDefinition = do
@@ -129,11 +121,7 @@ primaryKey = do
     return $ PrimaryKey x
 
 index :: GenParser Char st CreateDefinition
-index = do 
-    string "KEY " 
-    ident <- betweenTicks 
-    col <- keyColumns
-    return $ Index ident col
+index = string "KEY " >> Index `liftM` betweenTicks <*> keyColumns 
 
 foreignKeyConstraint :: GenParser Char st CreateDefinition
 foreignKeyConstraint = do 
