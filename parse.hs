@@ -119,6 +119,7 @@ keyColumns = do
   char '('
   xs <- sepBy betweenTicks (char ',')
   char ')'
+  spaces
   return $ intercalate "," xs
 
 primaryKey :: GenParser Char st CreateDefinition
@@ -139,7 +140,7 @@ foreignKeyConstraint = do
     string "CONSTRAINT " 
     ident <- betweenTicks
     string "FOREIGN KEY "
-    col <- betweenParensTicks
+    col <- keyColumns
     string "REFERENCES "
     tbl <- betweenTicks
     tblCol <- betweenParensTicks
@@ -150,7 +151,7 @@ uniqueConstraint :: GenParser Char st CreateDefinition
 uniqueConstraint = do
     string "UNIQUE KEY "
     a <- betweenTicks
-    b <- betweenParensTicks
+    b <- keyColumns
     return $ UniqueConstraint a b
 
 statement :: GenParser Char st Statement
