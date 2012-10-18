@@ -196,18 +196,3 @@ main = do
 
     
 
-{-
- -
- - :
- -
- -   simpleComment   = do{ string "<!--"
- -                         ; manyTill anyChar (try (string "-->"))
- -                                               }
- -
- -
-main = do 
-    res <- parseFromFile schemadump "mysql-schema.sql"
-    case res of
-      Left err -> print err
-      Right xs -> print xs
--}
