@@ -94,12 +94,7 @@ columnDefinition = do
     df <- optionMaybe $ Default `liftM` (string "DEFAULT " >> (many (noneOf " ,\n")))
     return $ ColumnDefinition tbl d df
 
-keyColumns = do
-  char '('
-  xs <- sepBy betweenTicks (char ',')
-  char ')'
-  spaces
-  return $ intercalate "," xs
+keyColumns = char '(' >> liftM (intercalate ",") (sepBy betweenTicks (char ',')) <* (char ')' >> spaces)
 
 primaryKey :: GenParser Char st CreateDefinition
 primaryKey = string "PRIMARY KEY " >> PrimaryKey `liftM` betweenParensTicks
