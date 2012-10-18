@@ -150,9 +150,7 @@ foreignKeyConstraint = do
 uniqueConstraint :: GenParser Char st CreateDefinition
 uniqueConstraint = do
     string "UNIQUE KEY "
-    a <- betweenTicks
-    b <- keyColumns
-    return $ UniqueConstraint a b
+    UniqueConstraint `liftM` betweenTicks <*> keyColumns
 
 statement :: GenParser Char st Statement
 statement = dropTable <|> createTable
