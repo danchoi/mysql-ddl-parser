@@ -40,9 +40,18 @@ instance Postgres Statement where
     translate (DropTable x) =  "drop table " ++ x
     translate x =  "don't know how to translate: "  ++ (show x)
 
+instance Postgres NullOpt where
+    translate NotNull = "not null"
+    translate Null = ""
+
+instance Postgres SerialOpt where
+    translate Serial = "serial"
+    translate NotSerial = ""
 
 instance Postgres CreateDefinition where
-    translate (ColumnDefinition c dt n s df) = "  " ++ (show c) ++ " " ++ (translate dt)
+    translate (ColumnDefinition c dt n s df) = 
+        "  " ++ (intercalate " " parts)
+        where parts = [show c, translate dt, translate s, translate n]
     translate _ = "  create definition"
 
 instance Postgres Datatype where
