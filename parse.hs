@@ -142,6 +142,17 @@ test s = do
                   Left e -> "No match " ++ show e
                   Right res -> show res
 
+prettyPrint :: [Statement] -> IO ()
+prettyPrint xs = 
+    mapM_ pprint xs
+    where pprint (CreateTable x ys) = do
+              putStrLn x
+              mapM_ (putStrLn . showCreateDefinition) ys
+          pprint _ = return ()
+
+showCreateDefinition :: CreateDefinition -> String
+showCreateDefinition x = "  " ++ (show x)
+  
 main = do 
     s <- getContents
     case parse stripComments "" s of 
@@ -151,7 +162,8 @@ main = do
           putStrLn "Stripped comments out to stripped.sql"
           case parse ddlFile "" s' of 
                   Left e -> putStrLn $ "No match " ++ show e
-                  Right res -> putStrLn $ show res
+                  Right xs -> do 
+                      prettyPrint xs
 
     
 
