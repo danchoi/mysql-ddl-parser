@@ -39,8 +39,8 @@ stripComments = do
 
 dropTable :: GenParser Char st Statement
 dropTable = do 
-    x <- string "DROP TABLE "
-    optional (string "IF EXISTS ")
+    x <- string "DROP TABLE" <* spaces
+    optional (string "IF EXISTS" <* spaces)
     t <- betweenTicks
     xs <- many (noneOf ";")
     semispaces
@@ -48,7 +48,7 @@ dropTable = do
 
 createTable :: GenParser Char st Statement
 createTable = do 
-    x <-  string "CREATE TABLE "
+    x <-  string "CREATE TABLE" <* spaces
     t <- betweenTicks 
     spaces >> char '('  >> spaces 
     ds <- definitions
@@ -108,8 +108,8 @@ columnDefinition :: GenParser Char st CreateDefinition
 columnDefinition = do 
     tbl <- betweenTicks
     d <- datatype
-    optional (string "COLLATE " >> (many (noneOf " "))) >> spaces
-    optional (try $ string "NOT NULL AUTO_INCREMENT")
+    optional (string "COLLATE" >> spaces >> (many (noneOf " "))) >> spaces
+    optional (try $ string "NOT NULL AUTO_INCREMENT")  -- may be eol
     optional (string "NOT NULL") >>  spaces
     df <- optionMaybe $ Default `liftM` (string "DEFAULT " >> (many (noneOf " ,\n")))
     return $ ColumnDefinition tbl d df
