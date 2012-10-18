@@ -47,10 +47,14 @@ instance Postgres CreateDefinition where
 
 instance Postgres Datatype where
     -- generally strip the width
+    -- translate (Datatype "tinyint" (Just "'1'")) = "boolean"
+    translate (Datatype "tinyint" x) = "smallint"
+    translate (Datatype "mediumint" x) = "integer"
     translate (Datatype "int" x) = "integer" 
     translate (Datatype "datetime" x) = "timestamp with time zone" 
     translate (Datatype "longtext" x) = "text" 
     translate (Datatype "mediumtext" x) = "text" 
+    translate (Datatype "blob" x) = "bytea" 
     translate (Datatype y x) = y 
 
 
