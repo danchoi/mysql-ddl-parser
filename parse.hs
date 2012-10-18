@@ -42,10 +42,16 @@ instance Postgres Statement where
 
 
 instance Postgres CreateDefinition where
-    translate (ColumnDefinition c dt n s df) = "  " ++ (show c) ++ " " ++ (show dt)
+    translate (ColumnDefinition c dt n s df) = "  " ++ (show c) ++ " " ++ (translate dt)
     translate _ = "  create definition"
 
--- instance Postgres Datatype where
+instance Postgres Datatype where
+    -- generally strip the width
+    translate (Datatype "int" x) = "integer" 
+    translate (Datatype "datetime" x) = "timestamp with time zone" 
+    translate (Datatype "longtext" x) = "text" 
+    translate (Datatype "mediumtext" x) = "text" 
+    translate (Datatype y x) = y 
 
 
 ------------------------------------------------------------------------
