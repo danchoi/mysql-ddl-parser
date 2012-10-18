@@ -148,9 +148,7 @@ foreignKeyConstraint = do
     return $ ForeignKeyConstraint ident col tbl tblCol action
 
 uniqueConstraint :: GenParser Char st CreateDefinition
-uniqueConstraint = do
-    string "UNIQUE KEY "
-    UniqueConstraint `liftM` betweenTicks <*> keyColumns
+uniqueConstraint = string "UNIQUE KEY " >> UniqueConstraint `liftM` betweenTicks <*> keyColumns
 
 statement :: GenParser Char st Statement
 statement = dropTable <|> createTable
