@@ -42,7 +42,7 @@ instance Postgres Statement where
 
 
 instance Postgres CreateDefinition where
-    translate (ColumnDefinition c d n s df) = "  " ++ (show c) ++ " " ++ (show d)
+    translate (ColumnDefinition c dt n s df) = "  " ++ (show c) ++ " " ++ (show dt)
     translate _ = "  create definition"
 
 ------------------------------------------------------------------------
