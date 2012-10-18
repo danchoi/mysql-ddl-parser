@@ -45,6 +45,9 @@ instance Postgres CreateDefinition where
     translate (ColumnDefinition c dt n s df) = "  " ++ (show c) ++ " " ++ (show dt)
     translate _ = "  create definition"
 
+-- instance Postgres Datatype where
+
+
 ------------------------------------------------------------------------
 
 
