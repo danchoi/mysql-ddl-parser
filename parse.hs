@@ -43,7 +43,6 @@ dropTable = do
     optional (string "IF EXISTS" <* spaces)
     t <- betweenTicks
     xs <- many (noneOf ";")
-    semispaces
     return $ DropTable t
 
 createTable :: GenParser Char st Statement
@@ -53,7 +52,6 @@ createTable = do
     spaces >> char '('  >> spaces 
     ds <- definitions
     many (noneOf ";")
-    semispaces
     return $ CreateTable t ds  
 
 eol = char '\n'
@@ -141,12 +139,8 @@ uniqueConstraint = string "UNIQUE KEY " >> UniqueConstraint `liftM` betweenTicks
 statement :: GenParser Char st Statement
 statement = dropTable <|> createTable
 
--- eats up ';' and any following spaces
-semispaces :: GenParser Char st ()
-semispaces = (char ';') >> spaces >> return ()
-
 ddlFile :: GenParser Char st [Statement]
-ddlFile = many statement 
+ddlFile = endBy statement (char ';' >> spaces)
 
 test s = do 
   case parse stripComments "" s of 
