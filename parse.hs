@@ -3,7 +3,6 @@ module Main where
 import Text.ParserCombinators.Parsec
 import Control.Applicative ((<$>), (<*>))
 import Text.ParserCombinators.Parsec.Combinator
-import Data.Char (toLower)
 import Control.Monad (liftM)
 import Control.Applicative ((<*))
 import Data.List (intercalate)
@@ -41,7 +40,7 @@ stripComments = do
 dropTable :: GenParser Char st Statement
 dropTable = do 
     x <- string "DROP TABLE "
-    y <- try (string "if exists ")
+    optional (string "IF EXISTS ")
     t <- betweenTicks
     xs <- many (noneOf ";")
     semispaces
@@ -98,18 +97,29 @@ createDefinition = do
 
 datatype :: GenParser Char st (String, Maybe String)
 datatype = do
-    t <- string "int" <|> string "varchar" <|> string "tinyint" <|> string "datetime" 
+    -- change these later to types
+    t <- string "int" <|> string "varchar" <|> try (string "tinyint") <|> try (string "datetime") <|> try (string "longblob") <|> try (string "blob")  <|>
+          try (string "text") <|> string "longtext" <|> string "decimal" <|> try (string "smallint") <|> try (string "bigint")
     width <- optionMaybe $ betweenParens
+    spaces
     return (t, width)
 
 columnDefinition :: GenParser Char st CreateDefinition
 columnDefinition = do 
     tbl <- betweenTicks
     d <- datatype
-    optional (string "NOT NULL AUTO_INCREMENT")
     optional (string "COLLATE " >> (many (noneOf " "))) >> spaces
+    optional (try $ string "NOT NULL AUTO_INCREMENT")
+    optional (string "NOT NULL") >>  spaces
     df <- optionMaybe $ Default `liftM` (string "DEFAULT " >> (many (noneOf " ,\n")))
     return $ ColumnDefinition tbl d df
+
+
+keyColumns = do
+  char '('
+  xs <- sepBy betweenTicks (char ',')
+  char ')'
+  return $ intercalate "," xs
 
 primaryKey :: GenParser Char st CreateDefinition
 primaryKey = do 
@@ -121,7 +131,7 @@ index :: GenParser Char st CreateDefinition
 index = do 
     string "KEY " 
     ident <- betweenTicks 
-    col <- betweenParensTicks
+    col <- keyColumns
     return $ Index ident col
 
 foreignKeyConstraint :: GenParser Char st CreateDefinition
@@ -130,7 +140,7 @@ foreignKeyConstraint = do
     ident <- betweenTicks
     string "FOREIGN KEY "
     col <- betweenParensTicks
-    string "REFERENCS "
+    string "REFERENCES "
     tbl <- betweenTicks
     tblCol <- betweenParensTicks
     action <- manyTill anyChar (char ',' <|> eol) -- LEAK
@@ -163,7 +173,16 @@ test s = do
 
 main = do 
     s <- getContents
-    putStrLn $ test s
+    case parse stripComments "" s of 
+      Left err -> putStrLn "Error stripping comments"
+      Right s' -> do
+          writeFile "stripped.sql" s'
+          putStrLn "Stripped comments out to stripped.sql"
+          case parse ddlFile "" s' of 
+                  Left e -> putStrLn $ "No match " ++ show e
+                  Right res -> putStrLn $ show res
+
+    
 
 {-
  -
