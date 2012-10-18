@@ -109,9 +109,7 @@ createDefinition = do
 
 datatype :: GenParser Char st Datatype 
 datatype = do
-    -- change these later to types
-    t <- string "int" <|> string "varchar" <|> try (string "tinyint") <|> try (string "datetime") <|> try (string "longblob") <|> try (string "blob")  <|>
-          try (string "text") <|> string "longtext" <|> string "decimal" <|> try (string "smallint") <|> try (string "bigint")
+    t <- many alphaNum
     width <- optionMaybe $ betweenParens
     spaces
     return $ Datatype t width
