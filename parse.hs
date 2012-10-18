@@ -57,20 +57,10 @@ createTable = do
 eol = char '\n'
 
 betweenTicks :: GenParser Char st String
-betweenTicks = do 
-    char '`' 
-    x <- many (noneOf "`")
-    char '`' 
-    spaces
-    return x
+betweenTicks = char '`' >> many (noneOf "`") <* (char '`' >> spaces)
 
 betweenParens :: GenParser Char st String
-betweenParens = do 
-    char '(' 
-    x <- many (noneOf ")") 
-    char ')' 
-    spaces
-    return x
+betweenParens = char '(' >> many (noneOf ")") <* (char ')' >> spaces)
 
 betweenParensTicks :: GenParser Char st String
 betweenParensTicks = char '(' >> betweenTicks <* (char ')' >> spaces)
