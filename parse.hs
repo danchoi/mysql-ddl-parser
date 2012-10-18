@@ -13,8 +13,10 @@ data Default = Default String deriving (Show)
 type Width = String
 type Type = String
 data Datatype = Datatype Type (Maybe Width) deriving (Show)
+data NullOpt = Null | NotNull deriving (Show)
+data Serial = Serial deriving (Show)
 
-data CreateDefinition = ColumnDefinition String Datatype (Maybe Default)
+data CreateDefinition = ColumnDefinition String Datatype NullOpt (Maybe Serial) (Maybe Default)
                       | Index String String 
                       | PrimaryKey String 
                       | ForeignKeyConstraint String String String String String
@@ -93,10 +95,13 @@ columnDefinition = do
     tbl <- betweenTicks
     d <- datatype
     optional (string "COLLATE" >> spaces >> (many (noneOf " "))) >> spaces
-    optional (try $ string "NOT NULL AUTO_INCREMENT")  -- may be eol
-    optional (string "NOT NULL") >>  spaces
+    n <- optionMaybe (string "NOT NULL") <* spaces
+    let nopt = case n of
+                  Nothing -> Null
+                  _ -> NotNull
+    s <- optionMaybe ((try $ string "AUTO_INCREMENT")  >> return Serial)
     df <- optionMaybe $ Default `liftM` (string "DEFAULT " >> (many (noneOf " ,\n")))
-    return $ ColumnDefinition tbl d df
+    return $ ColumnDefinition tbl d nopt s df
 
 keyColumns = char '(' >> liftM (intercalate ",") (sepBy betweenTicks (char ',')) <* (char ')' >> spaces)
 
