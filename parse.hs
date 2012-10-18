@@ -29,6 +29,25 @@ data Statement = CreateTable String [CreateDefinition]
                | DropTable String  -- entire string can be copied verbatim
                deriving (Show)
 
+------------------------------------------------------------------------
+
+class Postgres a where
+    translate :: a -> String
+
+instance Postgres Statement where 
+    translate (CreateTable x ys) = "create table " ++ x ++ "\n" ++ 
+                                      intercalate "\n" (map translate ys)
+    translate (DropTable x) =  "drop table " ++ x
+    translate x =  "don't know how to translate: "  ++ (show x)
+
+
+instance Postgres CreateDefinition where
+    translate (ColumnDefinition c d n s df) = "  " ++ (show c) ++ " " ++ (show d)
+    translate _ = "  create definition"
+
+------------------------------------------------------------------------
+
+
 comment :: GenParser Char st ()
 comment = 
     (string "--" >> manyTill anyChar newline >> return ()) <|>
@@ -43,7 +62,9 @@ stripComments = do
   optional comment
   return $ intercalate "" xs
 
--- Now we assume a clean file
+
+------------------------------------------------------------------------
+-- Real ddl parsing functions:
 
 dropTable :: GenParser Char st Statement
 dropTable = do 
@@ -152,7 +173,11 @@ prettyPrint xs =
 
           showCreateDefinition :: CreateDefinition -> String
           showCreateDefinition x = "  " ++ (show x)
-  
+
+toPostgres :: [Statement] -> IO ()
+toPostgres xs = mapM_ (putStrLn . translate) xs
+
+
 main = do 
     s <- getContents
     case parse stripComments "" s of 
@@ -163,7 +188,8 @@ main = do
           case parse ddlFile "" s' of 
                   Left e -> putStrLn $ "No match " ++ show e
                   Right xs -> do 
-                      prettyPrint xs
+                      -- prettyPrint xs
+                      toPostgres xs
 
     
 
