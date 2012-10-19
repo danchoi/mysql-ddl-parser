@@ -100,7 +100,6 @@ You should expect this to be returned in the same manner as a result from fetchA
 All results should be converted to lowercase for you before you see them. 
 
 
-
 TODO need to deal with MySQL table encodings
 
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=latin1;
@@ -108,4 +107,47 @@ TODO need to deal with MySQL table encodings
 convert.hs: SqlError {seState = "22021", seNativeError = 7, seErrorMsg =
 "execute: PGRES_FATAL_ERROR: ERROR:  invalid byte sequence for encoding
 \"UTF8\": 0xe2e3cf\n"}
+
+
+See this:
+http://dev.mysql.com/doc/refman/5.1/en/alter-table.html
+
+    To change the table default character set and all character columns (CHAR, VARCHAR, TEXT) to a new character set, use a statement like this:
+
+    ALTER TABLE tbl_name CONVERT TO CHARACTER SET charset_name;
+
+    For a column that has a data type of VARCHAR or one of the TEXT types, CONVERT TO CHARACTER SET will change the data type as necessary to ensure that the new column is long enough to store as many characters as the original column. For example, a TEXT column has two length bytes, which store the byte-length of values in the column, up to a maximum of 65,535. For a latin1 TEXT column, each character requires a single byte, so the column can store up to 65,535 characters. If the column is converted to utf8, each character might require up to three bytes, for a maximum possible length of 3 × 65,535 = 196,605 bytes. That length will not fit in a TEXT column's length bytes, so MySQL will convert the data type to MEDIUMTEXT, which is the smallest string type for which the length bytes can record a value of 196,605. Similarly, a VARCHAR column might be converted to MEDIUMTEXT.
+
+    To avoid data type changes of the type just described, do not use CONVERT TO CHARACTER SET. Instead, use MODIFY to change individual columns. For example:
+
+    ALTER TABLE t MODIFY latin1_text_col TEXT CHARACTER SET utf8;
+    ALTER TABLE t MODIFY latin1_varchar_col VARCHAR(M) CHARACTER SET utf8;
+
+    If you specify CONVERT TO CHARACTER SET binary, the CHAR, VARCHAR, and TEXT columns are converted to their corresponding binary string types (BINARY, VARBINARY, BLOB). This means that the columns no longer will have a character set and a subsequent CONVERT TO operation will not apply to them.
+
+    If charset_name is DEFAULT, the database character set is used.
+    Warning
+
+    The CONVERT TO operation converts column values between the character sets. This is not what you want if you have a column in one character set (like latin1) but the stored values actually use some other, incompatible character set (like utf8). In this case, you have to do the following for each such column:
+
+    ALTER TABLE t1 CHANGE c1 c1 BLOB;
+    ALTER TABLE t1 CHANGE c1 c1 TEXT CHARACTER SET utf8;
+
+    The reason this works is that there is no conversion when you convert to or from BLOB columns.
+
+    To change only the default character set for a table, use this statement:
+
+    ALTER TABLE tbl_name DEFAULT CHARACTER SET charset_name;
+
+    The word DEFAULT is optional. The default character set is the character set that is used if you do not specify the character set for columns that you add to a table later (for example, with ALTER TABLE ... ADD column). 
+
+With the mysql_info() C API function, you can find out how many rows were copied by ALTER TABLE, and (when IGNORE is used) how many rows were deleted due to duplication of unique key values. See Section 21.9.3.35, “mysql_info()”. 
+
+
+------------------------------------------------------------------------
+
+I can just detect non utf charsets and abort the script and print out
+the necessary conversion commands.
+
+
 
