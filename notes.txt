@@ -73,3 +73,30 @@ _______________________________________________________
 
 columnname INT          columnname SERIAL   INTEGER PRIMARY 
 AUTO_INCREMENT                              KEY AUTOINCREMENT
+
+
+
+
+------------------------------------------------------------------------
+
+
+
+
+getTables :: conn -> IO [String]Source
+
+The names of all tables accessible by the current connection, excluding special meta-tables (system tables).
+
+You should expect this to be returned in the same manner as a result from fetchAllRows'.
+
+All results should be converted to lowercase for you before you see them.
+
+
+describeTable :: conn -> String -> IO [(String, SqlColDesc)]Source
+
+Obtain information about the columns in a specific table. The String in the result set is the column name.
+
+You should expect this to be returned in the same manner as a result from fetchAllRows'.
+
+All results should be converted to lowercase for you before you see them. 
+
+
