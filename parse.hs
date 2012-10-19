@@ -19,9 +19,9 @@ data DefaultOpt = NoDefault
                 deriving (Show)
 
 data CreateDefinition = ColumnDefinition ColName Datatype NullOpt DefaultOpt
-                      | Index String String 
+                      | Index String String String  -- table indexname keycols
                       | PrimaryKey String 
-                      | ForeignKeyConstraint String String String String String
+                      | ForeignKeyConstraint String String String String String String
                       | UniqueConstraint String String 
                       deriving (Show)
 
@@ -36,17 +36,9 @@ class Postgres a where
 
 instance Postgres Statement where 
     translate (CreateTable x ys) = 
-        "create table " ++ x ++ " (\n  " ++ format (excludeIndexes ys) ++ "\n);\n" ++
-          formatIndexes x (justIndexes ys)
+        "create table " ++ x ++ " (\n  " ++ format (excludeIndexesAndFKs ys) ++ "\n);\n" 
         where format xs = intercalate ",\n  " (map translate xs) 
-              excludeIndexes ys = [x | x <- ys, (not . isIndex) x]
-              justIndexes ys = [x | x <- ys, isIndex x]
-              isIndex (Index _ _) = True
-              isIndex _ = False
-              formatIndexes tablename xs = unlines (map (\i -> translateIndex tablename i ++ ";") xs)
-              translateIndex t (Index ident cols) = "create index " ++ ident ++ " on " ++ t ++ " (" ++ cols ++ ")"
-
-
+              excludeIndexesAndFKs ys = [x | x <- ys, (not . isIndex) x && (not . isFk) x]
     translate (DropTable x) =  "drop table if exists " ++ x ++ " cascade;\n"
     translate x =  "don't know how to translate: "  ++ (show x)
 
@@ -63,8 +55,7 @@ instance Postgres CreateDefinition where
     translate (ColumnDefinition c dt n df) = (intercalate " " $ filter (/= "") parts) 
         where parts = [show c, translate dt, translate n, translate df]
     translate (PrimaryKey x) = "primary key (" ++ x ++ ")"
-    translate (ForeignKeyConstraint ident col tbl tblCol action) = 
-      "foreign key (" ++ col ++ ") references "++tbl++"("++tblCol++") "++action
+    translate (ForeignKeyConstraint tbl ident col refTbl refTblCol action) = "alter table " ++ tbl ++ " add foreign key (" ++ col ++ ") references "++refTbl++"("++refTblCol++") "++action
     translate (UniqueConstraint ident cols) = "unique (" ++ cols ++ ")" 
     translate x = "-- NO TRANSLATION: " ++ (show x)
 
@@ -81,6 +72,13 @@ instance Postgres Datatype where
     translate (Datatype "longblob" x) = "bytea" 
     translate (Datatype y x) = y 
 
+
+fkeys statements = filter isFk $ concat [ys | z@(CreateTable x ys) <- statements]
+
+isIndex (Index _ _ _) = True
+isIndex _ = False
+isFk (ForeignKeyConstraint _ _ _ _  _ _) = True
+isFk _ = False
 
 ------------------------------------------------------------------------
 
@@ -116,7 +114,7 @@ createTable = do
     x <-  string "CREATE TABLE" <* spaces
     t <- betweenTicks 
     spaces >> char '('  >> spaces 
-    ds <- definitions
+    ds <- definitions t -- pass down table name
     many (noneOf ";")
     return $ CreateTable t ds  
 
@@ -131,12 +129,12 @@ betweenParens = char '(' >> many (noneOf ")") <* (char ')' >> spaces)
 betweenParensTicks :: GenParser Char st String
 betweenParensTicks = char '(' >> betweenTicks <* (char ')' >> spaces)
 
-definitions :: GenParser Char st [CreateDefinition]
-definitions = many createDefinition <* char ')' 
+definitions :: String -> GenParser Char st [CreateDefinition]
+definitions tablename = many (createDefinition tablename) <* char ')' 
   
-createDefinition :: GenParser Char st CreateDefinition
-createDefinition = do
-    x <- primaryKey <|> index <|> foreignKeyConstraint <|> uniqueConstraint <|> columnDefinition 
+createDefinition :: String -> GenParser Char st CreateDefinition
+createDefinition tablename = do
+    x <- primaryKey <|> index tablename <|> foreignKeyConstraint tablename <|> uniqueConstraint <|> columnDefinition 
     optional (char ',') >> optional eol >> spaces
     return x
      -- <|> check
@@ -174,20 +172,20 @@ keyColumns = char '(' >> liftM (intercalate "," . map doubleQuote) (sepBy betwee
 primaryKey :: GenParser Char st CreateDefinition
 primaryKey = string "PRIMARY KEY " >> PrimaryKey `liftM` betweenParensTicks
 
-index :: GenParser Char st CreateDefinition
-index = string "KEY " >> Index `liftM` betweenTicks <*> keyColumns 
+index :: String -> GenParser Char st CreateDefinition
+index tablename = string "KEY " >> Index tablename `liftM` betweenTicks <*> keyColumns 
 
-foreignKeyConstraint :: GenParser Char st CreateDefinition
-foreignKeyConstraint = do 
+foreignKeyConstraint :: String -> GenParser Char st CreateDefinition
+foreignKeyConstraint tbl = do 
     string "CONSTRAINT " 
     ident <- betweenTicks
     string "FOREIGN KEY "
     col <- keyColumns
     string "REFERENCES "
-    tbl <- betweenTicks
-    tblCol <- betweenParensTicks
+    reftbl <- betweenTicks
+    reftblCol <- betweenParensTicks
     action <- manyTill anyChar (char ',' <|> eol) -- LEAK
-    return $ ForeignKeyConstraint ident col tbl tblCol action
+    return $ ForeignKeyConstraint tbl ident col reftbl reftblCol action
 
 uniqueConstraint :: GenParser Char st CreateDefinition
 uniqueConstraint = string "UNIQUE KEY " >> UniqueConstraint `liftM` betweenTicks <*> keyColumns
@@ -217,8 +215,17 @@ prettyPrint xs =
           showCreateDefinition :: CreateDefinition -> String
           showCreateDefinition x = "  " ++ (show x)
 
+
+indexes statements = filter isIndex $ concat [ys | z@(CreateTable t ys) <- statements]
+translateIndex (Index tbl ident cols) = "create index " ++ ident ++ " on " ++ tbl ++ " (" ++ cols ++ ");"
+
 toPostgres :: [Statement] -> IO ()
-toPostgres xs = mapM_ (putStrLn . translate) xs
+toPostgres xs = do 
+      mapM_ (putStrLn . translate) xs
+      mapM_ (putStrLn . translateIndex) $ indexes xs
+      mapM_ (putStrLn . translate) $ fkeys xs
+
+
 
 
 main = do 
