@@ -100,3 +100,12 @@ You should expect this to be returned in the same manner as a result from fetchA
 All results should be converted to lowercase for you before you see them. 
 
 
+
+TODO need to deal with MySQL table encodings
+
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=latin1;
+
+convert.hs: SqlError {seState = "22021", seNativeError = 7, seErrorMsg =
+"execute: PGRES_FATAL_ERROR: ERROR:  invalid byte sequence for encoding
+\"UTF8\": 0xe2e3cf\n"}
+
