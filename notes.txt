@@ -184,3 +184,8 @@ might have to do with lack of escaping by HDBC-postgresql
 http://haskell.1045720.n5.nabble.com/HDBC-postgresql-bytestrings-and-embedded-NULLs-td3331598.html
 
 Solution may be to use postgresql-simple on the insert side
+
+
+
+
+http://hackage.haskell.org/packages/archive/postgresql-libpq/0.6/doc/html/Database-PostgreSQL-LibPQ.html

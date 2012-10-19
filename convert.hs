@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 -- try to convert mysql schema to postgrse
 module Main where
 
@@ -6,13 +7,15 @@ import Database.HDBC
 import Database.HDBC.MySQL
 import Database.HDBC.PostgreSQL
 import Data.List (intercalate, elemIndex, findIndices)
+import qualified Data.ByteString.Char8 as Char8
 import qualified Data.ByteString as B
+import qualified Database.PostgreSQL.LibPQ as PQ
+import Data.Maybe (fromJust)
 
 -- OS X /private/tmp/mysql.sock
 connMysql = connectMySQL defaultMySQLConnectInfo { mysqlHost = "localhost", mysqlUser = "root", mysqlDatabase = "mackey_production", mysqlUnixSocket = "/private/tmp/mysql.sock" }
 -- Ubuntu:
 -- connMysql = connectMySQL defaultMySQLConnectInfo { mysqlHost = "localhost", mysqlUser = "root", mysqlDatabase = "mackey_development", mysqlUnixSocket = "/run/mysqld/mysqld.sock" }
-
 
 -- target
 connPg = connectPostgreSQL "dbname=mackey"
@@ -21,14 +24,19 @@ isSqlUnknown :: SqlTypeId -> Bool
 isSqlUnknown (SqlUnknownT _) = True
 isSqlUnknown _ = False
 
-getByteString :: SqlValue -> B.ByteString
-getByteString (SqlByteString x) = x
-getByteString _ = undefined
+getByteString :: PQ.Connection -> SqlValue -> IO SqlValue
+getByteString c (SqlByteString x) = do 
+    x <- PQ.escapeByteaConn c x  
+    return $ SqlByteString $ fromJust x
+getByteString c SqlNull = do 
+    return SqlNull
+getByteString conn x = fail $ "error: " ++ (show x)
 
 
 main = do
   pg <- connPg
   mysql <- connMysql
+  pq <- PQ.connectdb (Char8.pack "dbname=mackey")
   tables <- getTables mysql
   let tables' = filter (\t -> not $ elem t ["archived_file_uploads", "file_uploads"] ) tables
   forM_ tables (\t -> do 
@@ -53,13 +61,14 @@ main = do
 
         let placeholders = intercalate "," $ take (length cols) $ repeat "?"
             query = "insert into " ++ t ++ "(" ++ (intercalate ", " cols) ++ ") values (" ++ placeholders ++ ")"
-            row' = zipWith fixUnknown row colmeta
-            fixUnknown :: SqlValue -> SqlColDesc -> SqlValue
+            row' = zipWithM fixUnknown row colmeta
+            fixUnknown :: SqlValue -> SqlColDesc -> IO SqlValue
             fixUnknown x meta = case (isSqlUnknown . colType) meta of
-                                  True -> (SqlByteString (getByteString x))
-                                  False -> x
+                                  True -> getByteString pq x
+                                  False -> return x
                 
-        run pg query row'
+        -- row is IO [SqlValue]
+        run pg query `liftM` row'
         putChar '.'
         commit pg
     )
