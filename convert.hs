@@ -66,7 +66,7 @@ main = do
             fixUnknown x meta = case (isSqlUnknown . colType) meta of
                                   True -> getByteString pq x
                                   False -> return x
-                
+
         -- row is IO [SqlValue]
         run pg query `liftM` row'
         putChar '.'
