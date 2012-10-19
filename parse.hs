@@ -13,12 +13,11 @@ type Type = String
 type ColName = String
 data Datatype = Datatype Type (Maybe Width) deriving (Show)
 data NullOpt = Null | NotNull deriving (Show)
-data SerialOpt = NotSerial | Serial deriving (Show)
 data DefaultOpt = NoDefault 
                 | Default String 
                 deriving (Show)
 
-data CreateDefinition = ColumnDefinition ColName Datatype NullOpt SerialOpt DefaultOpt
+data CreateDefinition = ColumnDefinition ColName Datatype NullOpt DefaultOpt
                       | Index String String 
                       | PrimaryKey String 
                       | ForeignKeyConstraint String String String String String
@@ -44,14 +43,15 @@ instance Postgres NullOpt where
     translate NotNull = "not null"
     translate Null = ""
 
-instance Postgres SerialOpt where
-    translate Serial = "serial"
-    translate NotSerial = ""
+instance Postgres DefaultOpt where
+    translate (Default x) = "default " ++ (show x)
+    translate NoDefault = ""
+
 
 instance Postgres CreateDefinition where
-    translate (ColumnDefinition c dt n s df) = 
+    translate (ColumnDefinition c dt n df) = 
         "  " ++ (intercalate " " parts)
-        where parts = [show c, translate dt, translate s, translate n]
+        where parts = [show c, translate dt, translate n, translate df]
     translate _ = "  create definition"
 
 instance Postgres Datatype where
@@ -142,9 +142,10 @@ columnDefinition = do
     let nopt = case n of
                   Nothing -> Null
                   _ -> NotNull
-    s <- option NotSerial (try $ string "AUTO_INCREMENT" >> return Serial)
+    -- serial is a datatype in postgres, like an integer; so it should replace d
+    d' <- option d (try $ string "AUTO_INCREMENT" >> return (Datatype "serial" Nothing))
     df <- option NoDefault (Default `liftM` (string "DEFAULT " >> (many (noneOf " ,\n"))))
-    return $ ColumnDefinition tbl d nopt s df
+    return $ ColumnDefinition tbl d' nopt df
 
 keyColumns = char '(' >> liftM (intercalate ",") (sepBy betweenTicks (char ',')) <* (char ')' >> spaces)
 
