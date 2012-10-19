@@ -68,7 +68,8 @@ main = do
                                   False -> return x
 
         -- row is IO [SqlValue]
-        run pg query `liftM` row'
+        row'' <- row'
+        run pg query row''
         putChar '.'
         commit pg
     )
