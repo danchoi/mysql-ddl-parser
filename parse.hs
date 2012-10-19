@@ -52,6 +52,14 @@ instance Postgres DefaultOpt where
     translate NoDefault = ""
 
 instance Postgres CreateDefinition where
+    translate (ColumnDefinition c (Datatype "tinyint" (Just "1")) n df) = 
+        (intercalate " " $ filter (/= "") parts) 
+        where parts = [show c, "boolean", translate n, df']
+              df' = case df of
+                      Default "'1'" -> "default true"
+                      Default "'0'" -> "default false"
+                      _ -> ""
+
     translate (ColumnDefinition c dt n df) = (intercalate " " $ filter (/= "") parts) 
         where parts = [show c, translate dt, translate n, translate df]
     translate (PrimaryKey x) = "primary key (" ++ x ++ ")"
