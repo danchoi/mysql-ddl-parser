@@ -66,7 +66,7 @@ main = do
                                   True -> getByteString pq x
                                   False -> return x
 
-        -- row is IO [SqlValue]
+        -- row' is IO [SqlValue]
         row'' <- row'
         run pg query row''
         putChar '.'
