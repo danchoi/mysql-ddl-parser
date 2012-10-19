@@ -38,7 +38,6 @@ main = do
   mysql <- connMysql
   pq <- PQ.connectdb (Char8.pack "dbname=mackey")
   tables <- getTables mysql
-  let tables' = filter (\t -> not $ elem t ["archived_file_uploads", "file_uploads"] ) tables
   forM_ tables (\t -> do 
       putStrLn t
       cols' <- map fst  `liftM` describeTable mysql t
