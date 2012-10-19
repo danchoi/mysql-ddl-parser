@@ -151,3 +151,28 @@ the necessary conversion commands.
 
 
 
+Final error is copying blobs:
+
+..................archived_file_uploads
+["id","archived_note_id","filename","content_type","bytesize","blob","created_at","updated_at"]
+convert.hs: SqlError {seState = "22021", seNativeError = 7, seErrorMsg = "execute: PGRES_FATAL_ERROR: ERROR:  invalid byte sequence for encoding \"UTF8\": 0xe2e3cf\n"}
+[choi@sparta mysql-ddl-parser]$ 
+
+SqlColDesc {colType = SqlUnknownT "longblob", colSize = Nothing, colOctetLength = Nothing, colDecDigits = Nothing, colNullable = Just True},
+SqlColDesc {colType = SqlTimestampT, colSize = Nothing, colOctetLength = Nothing, colDecDigits = Nothing, colNullable = Just True}
+
+
+accesses
+archived_file_uploads
+/Users/choi/.rbenv/versions/1.9.3-p194/lib/ruby/gems/1.9.1/gems/sequel-3.40.0/lib/sequel/adapters/postgres.rb:145:in `async_exec': PG::Error: ERROR:  invalid byte sequence for encoding "UTF8": 0xe2e3cf (Sequel::DatabaseError
+
+
+       o   --compatible=name
+
+
+mysqldump -uroot -t --compatible=postgresql mackey_production  > pgcompat.dump
+ is useless 
+
+
+[SqlInt32 5,SqlInt32 67,SqlByteString "0900b8c0837c86f8.pdf",SqlByteString "application/pdf",SqlInt32 368309,SqlByteString "%PDF-1.4\r%\226\227\207\211\r\n106 0 obj <</Linearized 1/L 350978/O 108/E 117787/N 17/T 348810/H [ 836 468]>>\rendobj\r            \r\nxref\r\n106 27\r\n0000000016 00000 n\r\n0000001304 00000 n\r\n0000001395 00000 n\r\n0000001603 00000 n\r\n0000001757 00000 n\r\n0000002343 00000 n\r\n000000
+
