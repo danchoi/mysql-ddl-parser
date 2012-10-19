@@ -233,8 +233,7 @@ main = do
     case parse stripComments "" s of 
       Left err -> putStrLn "Error stripping comments"
       Right s' -> do
-          writeFile "stripped.sql" s'
-          putStrLn "-- Stripped comments out to stripped.sql"
+          -- writeFile "stripped.sql" s' -- for debugging
           case parse ddlFile "" s' of 
                   Left e -> putStrLn $ "No match " ++ show e
                   Right xs -> do 
