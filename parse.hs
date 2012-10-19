@@ -14,6 +14,7 @@ type ColName = String
 data Datatype = Datatype Type (Maybe Width) deriving (Show)
 data NullOpt = Null | NotNull deriving (Show)
 data DefaultOpt = NoDefault 
+                | DefaultNull
                 | Default String 
                 deriving (Show)
 
@@ -44,14 +45,15 @@ instance Postgres NullOpt where
     translate Null = ""
 
 instance Postgres DefaultOpt where
-    translate (Default x) = "default " ++ (show x)
+    translate (Default x) = "default " ++ x
+    translate DefaultNull = ""
     translate NoDefault = ""
-
 
 instance Postgres CreateDefinition where
     translate (ColumnDefinition c dt n df) = 
         "  " ++ (intercalate " " parts)
         where parts = [show c, translate dt, translate n, translate df]
+    translate (PrimaryKey x) = "  primary key " ++ (show x)
     translate _ = "  create definition"
 
 instance Postgres Datatype where
@@ -144,8 +146,13 @@ columnDefinition = do
                   _ -> NotNull
     -- serial is a datatype in postgres, like an integer; so it should replace d
     d' <- option d (try $ string "AUTO_INCREMENT" >> return (Datatype "serial" Nothing))
-    df <- option NoDefault (Default `liftM` (string "DEFAULT " >> (many (noneOf " ,\n"))))
+    df <- option NoDefault parseDefault
     return $ ColumnDefinition tbl d' nopt df
+  where parseDefault = do
+          string "DEFAULT" >> spaces
+          (string "NULL" >> return DefaultNull) <|> (do
+            x <- many (noneOf "\n,") 
+            return $ Default x)
 
 keyColumns = char '(' >> liftM (intercalate ",") (sepBy betweenTicks (char ',')) <* (char ')' >> spaces)
 
