@@ -63,7 +63,7 @@ instance Postgres CreateDefinition where
     translate (ColumnDefinition c dt n df) = (intercalate " " $ filter (/= "") parts) 
         where parts = [show c, translate dt, translate n, translate df]
     translate (PrimaryKey x) = "primary key (" ++ x ++ ")"
-    translate (ForeignKeyConstraint tbl ident col refTbl refTblCol action) = "alter table " ++ tbl ++ " add foreign key (" ++ col ++ ") references "++refTbl++"("++refTblCol++") "++action
+    translate (ForeignKeyConstraint tbl ident col refTbl refTblCol action) = "alter table " ++ tbl ++ " add foreign key (" ++ col ++ ") references "++refTbl++"("++refTblCol++") "++action ++ ";"
     translate (UniqueConstraint ident cols) = "unique (" ++ cols ++ ")" 
     translate x = "-- NO TRANSLATION: " ++ (show x)
 
