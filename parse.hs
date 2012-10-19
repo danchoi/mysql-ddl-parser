@@ -35,9 +35,19 @@ class Postgres a where
     translate :: a -> String
 
 instance Postgres Statement where 
-    translate (CreateTable x ys) = "create table " ++ x ++ "\n" ++ 
-                                      intercalate "\n" (map translate ys)
-    translate (DropTable x) =  "drop table " ++ x
+    translate (CreateTable x ys) = 
+        "create table " ++ x ++ " (\n  " ++ format (excludeIndexes ys) ++ "\n);\n" ++
+          formatIndexes x (justIndexes ys)
+        where format xs = intercalate ",\n  " (map translate xs) 
+              excludeIndexes ys = [x | x <- ys, (not . isIndex) x]
+              justIndexes ys = [x | x <- ys, isIndex x]
+              isIndex (Index _ _) = True
+              isIndex _ = False
+              formatIndexes tablename xs = unlines (map (\i -> translateIndex tablename i ++ ";") xs)
+              translateIndex t (Index ident cols) = "create index " ++ ident ++ " on " ++ t ++ " (" ++ cols ++ ")"
+
+
+    translate (DropTable x) =  "drop table if exists " ++ x ++ " cascade;\n"
     translate x =  "don't know how to translate: "  ++ (show x)
 
 instance Postgres NullOpt where
@@ -50,11 +60,13 @@ instance Postgres DefaultOpt where
     translate NoDefault = ""
 
 instance Postgres CreateDefinition where
-    translate (ColumnDefinition c dt n df) = 
-        "  " ++ (intercalate " " parts)
+    translate (ColumnDefinition c dt n df) = (intercalate " " $ filter (/= "") parts) 
         where parts = [show c, translate dt, translate n, translate df]
-    translate (PrimaryKey x) = "  primary key " ++ (show x)
-    translate _ = "  create definition"
+    translate (PrimaryKey x) = "primary key (" ++ x ++ ")"
+    translate (ForeignKeyConstraint ident col tbl tblCol action) = 
+      "foreign key (" ++ col ++ ") references "++tbl++"("++tblCol++") "++action
+    translate (UniqueConstraint ident cols) = "unique (" ++ cols ++ ")" 
+    translate x = "-- NO TRANSLATION: " ++ (show x)
 
 instance Postgres Datatype where
     -- generally strip the width
@@ -66,6 +78,7 @@ instance Postgres Datatype where
     translate (Datatype "longtext" x) = "text" 
     translate (Datatype "mediumtext" x) = "text" 
     translate (Datatype "blob" x) = "bytea" 
+    translate (Datatype "longblob" x) = "bytea" 
     translate (Datatype y x) = y 
 
 
@@ -154,7 +167,9 @@ columnDefinition = do
             x <- many (noneOf "\n,") 
             return $ Default x)
 
-keyColumns = char '(' >> liftM (intercalate ",") (sepBy betweenTicks (char ',')) <* (char ')' >> spaces)
+doubleQuote s = "\"" ++ s ++ "\""
+
+keyColumns = char '(' >> liftM (intercalate "," . map doubleQuote) (sepBy betweenTicks (char ',')) <* (char ')' >> spaces)
 
 primaryKey :: GenParser Char st CreateDefinition
 primaryKey = string "PRIMARY KEY " >> PrimaryKey `liftM` betweenParensTicks
@@ -212,7 +227,7 @@ main = do
       Left err -> putStrLn "Error stripping comments"
       Right s' -> do
           writeFile "stripped.sql" s'
-          putStrLn "Stripped comments out to stripped.sql"
+          putStrLn "-- Stripped comments out to stripped.sql"
           case parse ddlFile "" s' of 
                   Left e -> putStrLn $ "No match " ++ show e
                   Right xs -> do 
