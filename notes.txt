@@ -176,3 +176,11 @@ mysqldump -uroot -t --compatible=postgresql mackey_production  > pgcompat.dump
 
 [SqlInt32 5,SqlInt32 67,SqlByteString "0900b8c0837c86f8.pdf",SqlByteString "application/pdf",SqlInt32 368309,SqlByteString "%PDF-1.4\r%\226\227\207\211\r\n106 0 obj <</Linearized 1/L 350978/O 108/E 117787/N 17/T 348810/H [ 836 468]>>\rendobj\r            \r\nxref\r\n106 27\r\n0000000016 00000 n\r\n0000001304 00000 n\r\n0000001395 00000 n\r\n0000001603 00000 n\r\n0000001757 00000 n\r\n0000002343 00000 n\r\n000000
 
+
+
+might have to do with lack of escaping by HDBC-postgresql
+
+
+http://haskell.1045720.n5.nabble.com/HDBC-postgresql-bytestrings-and-embedded-NULLs-td3331598.html
+
+Solution may be to use postgresql-simple on the insert side
