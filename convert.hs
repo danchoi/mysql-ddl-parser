@@ -20,18 +20,21 @@ main = do
   pg <- connPg
   mysql <- connMysql
   tables <- getTables mysql
-  forM_ tables (\t -> do 
+  let tables' = filter (\t -> not $ elem t ["archived_file_uploads", "file_uploads"] ) tables
+  forM_ tables' (\t -> do 
       putStrLn t
-      cols <- map fst  `liftM` describeTable mysql t
+      cols' <- map fst  `liftM` describeTable mysql t
+      let cols = map (\x -> "\"" ++ x ++ "\"") cols'
       putStrLn $ show cols
+
       rows <- withRTSSignalsBlocked $ do
         quickQuery' mysql ("select * from " ++ t) []
 
       forM_ rows $ \row -> do 
         let placeholders = intercalate "," $ take (length cols) $ repeat "?"
-            query = "insert into " ++ t ++ "(" ++ (intercalate "," cols) ++ ") values (" ++ placeholders ++ ")"
+            query = "insert into " ++ t ++ "(" ++ (intercalate ", " cols) ++ ") values (" ++ placeholders ++ ")"
         run pg query row
-        print "."
+        putChar '.'
         commit pg
     )
   putStrLn $ "tables: " ++ (show tables)
