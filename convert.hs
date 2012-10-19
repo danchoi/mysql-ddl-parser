@@ -24,9 +24,8 @@ main = do
   forM_ tables' (\t -> do 
       putStrLn t
       cols' <- map fst  `liftM` describeTable mysql t
-      let cols = map (\x -> "\"" ++ x ++ "\"") cols'
-      putStrLn $ show cols
-
+      let cols = map (\x -> "\"" ++ x ++ "\"") cols' -- quote all table columns 
+      putStrLn $ show cols'
       rows <- withRTSSignalsBlocked $ do
         quickQuery' mysql ("select * from " ++ t) []
 
