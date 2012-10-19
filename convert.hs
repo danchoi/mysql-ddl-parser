@@ -18,7 +18,8 @@ connMysql = connectMySQL defaultMySQLConnectInfo { mysqlHost = "localhost", mysq
 -- connMysql = connectMySQL defaultMySQLConnectInfo { mysqlHost = "localhost", mysqlUser = "root", mysqlDatabase = "mackey_development", mysqlUnixSocket = "/run/mysqld/mysqld.sock" }
 
 -- target
-connPg = connectPostgreSQL "dbname=mackey"
+
+connPg = "dbname=mackey"
    
 isSqlUnknown :: SqlTypeId -> Bool
 isSqlUnknown (SqlUnknownT _) = True
@@ -34,33 +35,31 @@ getByteString conn x = fail $ "error: " ++ (show x)
 
 
 main = do
-  pg <- connPg
+  pg <- connectPostgreSQL connPg
   mysql <- connMysql
-  pq <- PQ.connectdb (Char8.pack "dbname=mackey")
+  pq <- PQ.connectdb (Char8.pack connPg)
   tables <- getTables mysql
   forM_ tables (\t -> do 
-      putStrLn t
-      cols' <- map fst  `liftM` describeTable mysql t
-      colmeta <- map snd  `liftM` describeTable mysql t
-      let colmeta2 = show (map colType colmeta)
-      -- putStrLn $ show $ elemIndex (SqlUnknownT "longblob") colmeta2 
-
-      let cols = map (\x -> "\"" ++ x ++ "\"") cols' -- quote all table columns 
-      putStrLn $ show cols'
+      putStrLn $ "\n" ++ t
+      columnData <- describeTable mysql t
+      let colnames = map fst columnData
+      putStrLn $ show colnames
+      let colMetaData = map snd columnData
+      let cols = map (\x -> "\"" ++ x ++ "\"") colnames -- quote all table columns 
 
       -- find any SqlUnknownT columns
-      let toFix = findIndices (isSqlUnknown . colType) colmeta 
-      putStrLn $ "Unknown types at " ++ (show toFix)
+      let xs = filter (isSqlUnknown . colType . snd) columnData
+      when (not $ null xs) 
+          (putStrLn $ "Unknown datatypes: " ++ (intercalate "\n" $ map show xs) ++ "\nAssuming ByteString.")
 
       rows <- withRTSSignalsBlocked $ do
           quickQuery' mysql ("select * from " ++ t) []
 
       forM_ rows $ \row -> do 
         -- putStrLn $ show row  -- DEBUGGER
-
         let placeholders = intercalate "," $ take (length cols) $ repeat "?"
             query = "insert into " ++ t ++ "(" ++ (intercalate ", " cols) ++ ") values (" ++ placeholders ++ ")"
-            row' = zipWithM fixUnknown row colmeta
+            row' = zipWithM fixUnknown row colMetaData
             fixUnknown :: SqlValue -> SqlColDesc -> IO SqlValue
             fixUnknown x meta = case (isSqlUnknown . colType) meta of
                                   True -> getByteString pq x
