@@ -46,7 +46,7 @@ main = do
       putStrLn $ "Unknown types at " ++ (show toFix)
 
       rows <- withRTSSignalsBlocked $ do
-        quickQuery' mysql ("select * from " ++ t) []
+          quickQuery' mysql ("select * from " ++ t) []
 
       forM_ rows $ \row -> do 
         -- putStrLn $ show row  -- DEBUGGER
