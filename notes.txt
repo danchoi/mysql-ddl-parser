@@ -189,3 +189,7 @@ Solution may be to use postgresql-simple on the insert side
 
 
 http://hackage.haskell.org/packages/archive/postgresql-libpq/0.6/doc/html/Database-PostgreSQL-LibPQ.html
+
+
+
+
