@@ -5,4 +5,4 @@ cabal install hdbc
 cabal install hdbc-postgresql
 cabal install hdbc-mysql
 cabal install iconv
--- cabal install charsetdetect
+* cabal install charsetdetect

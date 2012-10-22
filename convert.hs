@@ -2,7 +2,9 @@
 -- try to convert mysql schema to postgrse
 module Main where
 
-import Control.Monad
+import Prelude hiding (catch)
+import Control.Monad 
+import Control.Exception (catch)
 import Database.HDBC
 import Database.HDBC.MySQL
 import Database.HDBC.PostgreSQL
@@ -37,7 +39,8 @@ getByteString c SqlNull = do
     return SqlNull
 getByteString conn x = fail $ "error getByteString: " ++ (show x)
 
-translit x = toSql (IConv.convertFuzzy IConv.Transliterate "UTF-8" "UTF-8" (fromSql x)) 
+-- translit x = toSql (IConv.convertFuzzy IConv.Transliterate "UTF-8" "UTF-8" (fromSql x)) 
+translit x = toSql (IConv.convert "LATIN1" "UTF-8" (fromSql x)) 
 
 main = do
   pg <- connectPostgreSQL connPg
@@ -68,18 +71,20 @@ main = do
             row' = zipWithM fixUnknown row colMetaData
             fixUnknown :: SqlValue -> SqlColDesc -> IO SqlValue
             fixUnknown x meta = case (colType meta, x) of
+                                  (SqlUnknownT _, SqlByteString _) -> getByteString pq x
                                   (SqlUnknownT "longblob", SqlByteString _) -> getByteString pq x
                                   (SqlUnknownT "mediumtext", SqlByteString y) -> return $ translit x
                                   (SqlUnknownT "longtext", SqlByteString _) -> return $ translit x
                                   (SqlVarCharT, SqlByteString _) -> return $ translit x
                                   (SqlBinaryT, SqlByteString _) -> return $ translit x
-                                  -- (SqlUnknownT "mediumtext") -> return $ translit x
                                   _ -> return x
 
         -- row' is IO [SqlValue]
         row'' <- row'
         -- putStrLn $ show row''
-        run pg query row''
+
+        run pg query row'' 
+
         putChar '.'
         commit pg
     )
