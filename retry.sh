@@ -1,4 +1,4 @@
 dropdb mackey
 createdb mackey
-runghc parse.hs < mackey.mysql.schema | psql mackey
+mysqldump -uroot -d mackey_development | runghc parse.hs | psql mackey
 runghc convert.hs

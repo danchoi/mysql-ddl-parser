@@ -23,7 +23,7 @@ connPg = "dbname=mackey"
    
 isSqlUnknown :: SqlTypeId -> Bool
 isSqlUnknown (SqlUnknownT _) = True
-isSqlUnknown (SqlBinaryT) = True
+-- isSqlUnknown (SqlBinaryT) = True
 isSqlUnknown _ = False
 
 getByteString :: PQ.Connection -> SqlValue -> IO SqlValue
@@ -43,7 +43,7 @@ main = do
   forM_ tables (\t -> do 
       putStrLn $ "\n" ++ t
       columnData <- describeTable mysql t
-      -- mapM (putStrLn . show) columnData
+      mapM (putStrLn . show) columnData
       let colnames = map fst columnData
       putStrLn $ show colnames
       let colMetaData = map snd columnData
