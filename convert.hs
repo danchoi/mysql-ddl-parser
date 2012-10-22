@@ -8,10 +8,12 @@ import Database.HDBC.MySQL
 import Database.HDBC.PostgreSQL
 import Data.List (intercalate, elemIndex, findIndices)
 import qualified Data.ByteString.Char8 as Char8
+import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString as B
 import qualified Database.PostgreSQL.LibPQ as PQ
 import Data.Maybe (fromJust)
 import qualified Codec.Text.IConv as IConv
+-- import Codec.Text.Detect 
 
 -- OS X /private/tmp/mysql.sock
 -- connMysql = connectMySQL defaultMySQLConnectInfo { mysqlHost = "localhost", mysqlUser = "root", mysqlDatabase = "mackey_production", mysqlUnixSocket = "/private/tmp/mysql.sock" }
@@ -35,6 +37,7 @@ getByteString c SqlNull = do
     return SqlNull
 getByteString conn x = fail $ "error getByteString: " ++ (show x)
 
+translit x = toSql (IConv.convertFuzzy IConv.Transliterate "UTF-8" "UTF-8" (fromSql x)) 
 
 main = do
   pg <- connectPostgreSQL connPg
@@ -66,15 +69,16 @@ main = do
             fixUnknown :: SqlValue -> SqlColDesc -> IO SqlValue
             fixUnknown x meta = case (colType meta, x) of
                                   (SqlUnknownT "longblob", SqlByteString _) -> getByteString pq x
-                                  (SqlUnknownT "mediumtext", _) -> return $ toSql "hello"
-                                  (SqlVarCharT, SqlByteString _) -> return $ toSql (IConv.convertFuzzy IConv.Transliterate "UTF-8" "UTF-8" (fromSql x)) 
-                                  (SqlBinaryT, SqlByteString _) -> return $ toSql (IConv.convertFuzzy IConv.Transliterate "UTF-8" "UTF-8" (fromSql x)) 
-                                  -- (SqlUnknownT "mediumtext") -> return $ toSql (IConv.convertFuzzy IConv.Transliterate "UTF-8" "UTF-8" (fromSql x))
+                                  (SqlUnknownT "mediumtext", SqlByteString y) -> return $ translit x
+                                  (SqlUnknownT "longtext", SqlByteString _) -> return $ translit x
+                                  (SqlVarCharT, SqlByteString _) -> return $ translit x
+                                  (SqlBinaryT, SqlByteString _) -> return $ translit x
+                                  -- (SqlUnknownT "mediumtext") -> return $ translit x
                                   _ -> return x
 
         -- row' is IO [SqlValue]
         row'' <- row'
-        putStrLn $ show row''
+        -- putStrLn $ show row''
         run pg query row''
         putChar '.'
         commit pg
