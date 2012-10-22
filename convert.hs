@@ -11,6 +11,7 @@ import qualified Data.ByteString.Char8 as Char8
 import qualified Data.ByteString as B
 import qualified Database.PostgreSQL.LibPQ as PQ
 import Data.Maybe (fromJust)
+import qualified Codec.Text.IConv as IConv
 
 -- OS X /private/tmp/mysql.sock
 -- connMysql = connectMySQL defaultMySQLConnectInfo { mysqlHost = "localhost", mysqlUser = "root", mysqlDatabase = "mackey_production", mysqlUnixSocket = "/private/tmp/mysql.sock" }
@@ -63,12 +64,17 @@ main = do
             query = "insert into " ++ t ++ "(" ++ (intercalate ", " cols) ++ ") values (" ++ placeholders ++ ")"
             row' = zipWithM fixUnknown row colMetaData
             fixUnknown :: SqlValue -> SqlColDesc -> IO SqlValue
-            fixUnknown x meta = case (isSqlUnknown . colType) meta of
-                                  True -> getByteString pq x
-                                  False -> return x
+            fixUnknown x meta = case (colType meta, x) of
+                                  (SqlUnknownT "longblob", SqlByteString _) -> getByteString pq x
+                                  (SqlUnknownT "mediumtext", _) -> return $ toSql "hello"
+                                  (SqlVarCharT, SqlByteString _) -> return $ toSql (IConv.convertFuzzy IConv.Transliterate "UTF-8" "UTF-8" (fromSql x)) 
+                                  (SqlBinaryT, SqlByteString _) -> return $ toSql (IConv.convertFuzzy IConv.Transliterate "UTF-8" "UTF-8" (fromSql x)) 
+                                  -- (SqlUnknownT "mediumtext") -> return $ toSql (IConv.convertFuzzy IConv.Transliterate "UTF-8" "UTF-8" (fromSql x))
+                                  _ -> return x
 
         -- row' is IO [SqlValue]
         row'' <- row'
+        putStrLn $ show row''
         run pg query row''
         putChar '.'
         commit pg
