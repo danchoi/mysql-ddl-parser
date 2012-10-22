@@ -192,4 +192,8 @@ http://hackage.haskell.org/packages/archive/postgresql-libpq/0.6/doc/html/Databa
 
 
 
+On my Dell XPS Ubuntu, Text columns cause UTF8 encoding errors: This is
+their columnData:
+
+("bio",SqlColDesc {colType = SqlBinaryT, colSize = Nothing, colOctetLength = Nothing, colDecDigits = Nothing, colNullable = Just True})
 
