@@ -197,3 +197,11 @@ their columnData:
 
 ("bio",SqlColDesc {colType = SqlBinaryT, colSize = Nothing, colOctetLength = Nothing, colDecDigits = Nothing, colNullable = Just True})
 
+
+mysql text cols are SqlBinary
+
+("title",SqlColDesc {colType = SqlVarCharT, colSize = Nothing, colOctetLength = Nothing, colDecDigits = Nothing, colNullable = Just True})
+("start_date",SqlColDesc {colType = SqlTimestampT, colSize = Nothing, colOctetLength = Nothing, colDecDigits = Nothing, colNullable = Just True})
+("body",SqlColDesc {colType = SqlBinaryT, colSize = Nothing, colOctetLength = Nothing, colDecDigits = Nothing, colNullable = Just True})
+("created_at",SqlColDesc {colType = SqlTimestampT, colSize = Nothing, colOctetLength = Nothing, colDecDigits = Nothing, colNullable = Just True})
+
