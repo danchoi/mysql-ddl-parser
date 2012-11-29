@@ -37,11 +37,13 @@ main = do
       putStrLn $ intercalate "," $ map (take 50 . fromSql) [id, title]
       -- compare to postgres row
       [[id', title', body']] <- quickQuery' pg "select id, title, body from notes where id = ?" [id]
-      putStrLn (if title == title' then "Titles match" else "TITLES DON'T MATCH")
+      putStrLn (if (fromSql title ::String) == (fromSql title' ::String) then "Titles match" else "TITLES DON'T MATCH")
       putStrLn (if body == body' then "Bodies  match" else "BODIES  DON'T MATCH")
       if (body /= SqlNull) then do
           let bodyLength = length $ (fromSql body :: String)
+          let bodyLength' = length $ (fromSql body' :: String)
           putStrLn ("Body length: " ++ (show bodyLength))
+          putStrLn ("Body' length: " ++ (show bodyLength'))
       else putStrLn "Body null"
        
 
